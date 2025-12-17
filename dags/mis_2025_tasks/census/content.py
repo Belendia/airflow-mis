@@ -83,6 +83,7 @@ def census_content(**kwargs):
                         "dateLastSelected": get_text("dateLastSelected"),
                         "deviceId": get_text("deviceId"),
                         "excluded": get_text("excluded"),
+                        "placeName": get_text("placeName"),
                         "headName": get_text("headName"),
                         "houseNumber": get_text("houseNumber"),
                         "latitude": lat,
