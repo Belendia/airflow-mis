@@ -13,7 +13,7 @@ from mis_2025_tasks.net.content import net_content
 from mis_2025_tasks.child.content import child_content
 from mis_2025_tasks.visit.content import visit_content
 
-# Common configuration to avoid repetition
+# Common configuration
 COMMON_CONFIG = {
     "AGGREGATE_URL": Variable.get("AGGREGATE_URL"),
     "AGG_USERNAME": Variable.get("AGG_USERNAME"),
@@ -25,7 +25,7 @@ COMMON_CONFIG = {
 with DAG(
     dag_id="MIS-2025",
     start_date=datetime(2025, 1, 1),
-    schedule="@daily",
+    schedule="0 */6 * * *", # Every 6 hours
     catchup=False,
     default_args={"owner": "airflow", "retries": 1},
     tags=["odk", "aggregate"],
