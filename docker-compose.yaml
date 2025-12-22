@@ -145,8 +145,8 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
-    # extra_hosts: # <--- ADD THIS BLOCK (if on Linux)
-    #   - "host.docker.internal:172.17.0.1"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   airflow-dag-processor:
     <<: *airflow-common
@@ -162,6 +162,8 @@ services:
       retries: 5
       start_period: 30s
     restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -191,8 +193,8 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
-    # extra_hosts: # <--- ADD THIS BLOCK (if on Linux)
-    #   - "host.docker.internal:172.17.0.1"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   airflow-triggerer:
     <<: *airflow-common
