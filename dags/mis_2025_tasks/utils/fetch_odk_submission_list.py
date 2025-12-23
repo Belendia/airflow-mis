@@ -29,9 +29,24 @@ def fetch_odk_submission_list(**kwargs):
     with pg.get_conn() as conn:
         with conn.cursor() as cursor:
             while True:
-                url = f"{aggregate_url}/view/submissionList?formId={form_id}&numEntries={num_entries}&cursor={cursor_val}"
+                #url = f"{aggregate_url}/view/submissionList?formId={form_id}&numEntries={num_entries}&cursor={cursor_val}"
                 
-                response = session.get(url, headers={"Accept": "application/xml"})
+                #response = session.get(url, headers={"Accept": "application/xml"})
+                url = f"{aggregate_url}/view/submissionList"
+
+                params = {
+                    "formId": form_id,
+                    "numEntries": num_entries,
+                }
+                
+                if cursor_val:
+                    params["cursor"] = cursor_val
+                
+                response = session.get(
+                    url,
+                    params=params,
+                    headers={"Accept": "application/xml"},
+                )
                 response.raise_for_status()
                 root = ET.fromstring(response.text)
 
