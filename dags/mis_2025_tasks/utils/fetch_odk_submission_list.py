@@ -1,7 +1,6 @@
 import requests
 import xml.etree.ElementTree as ET
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from requests.auth import HTTPDigestAuth
 
 def fetch_odk_submission_list(**kwargs):
     """
@@ -20,7 +19,7 @@ def fetch_odk_submission_list(**kwargs):
     num_entries = int(kwargs.get("NUM_ENTRIES", 100))
 
     session = requests.Session()
-    session.auth = HTTPDigestAuth(username, password)#(username, password)
+    session.auth = (username, password)
     pg = PostgresHook(postgres_conn_id=postgres_conn_id)
 
     cursor_val = ""
