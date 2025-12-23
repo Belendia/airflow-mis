@@ -2,6 +2,7 @@ import requests
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from requests.auth import HTTPDigestAuth
 
 def visit_content(**kwargs):
     AGGREGATE_URL = kwargs["AGGREGATE_URL"].rstrip("/")
@@ -26,7 +27,7 @@ def visit_content(**kwargs):
                 return
 
             session = requests.Session()
-            session.auth = (AGG_USERNAME, AGG_PASSWORD)
+            session.auth = HTTPDigestAuth(AGG_USERNAME, AGG_PASSWORD)
 
             namespaces = {
                 'odk': 'http://opendatakit.org/submissions',
