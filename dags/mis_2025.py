@@ -27,6 +27,7 @@ with DAG(
     start_date=datetime(2025, 1, 1),
     schedule="0 */6 * * *", # Every 6 hours
     catchup=False,
+    max_active_runs=1,
     default_args={"owner": "airflow", "retries": 1},
     tags=["odk", "aggregate"],
 ) as dag:
