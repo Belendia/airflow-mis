@@ -1,13 +1,13 @@
 import requests
 import logging
+import time
 import xml.etree.ElementTree as ET
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from requests.auth import HTTPDigestAuth
 
 def fetch_odk_submission_list(**kwargs):
     """
-    Generic function to fetch submission IDs for any ODK form 
-    and UPSERT them into a specific tracking table.
+    Refactored to prevent ODK Aggregate server crashes.
     """
     form_id = kwargs["form_id"]
     target_table = kwargs["target_table"]
@@ -16,7 +16,9 @@ def fetch_odk_submission_list(**kwargs):
     username = kwargs["AGG_USERNAME"]
     password = kwargs["AGG_PASSWORD"]
     postgres_conn_id = kwargs["POSTGRES_CONN_ID"]
-    num_entries = int(kwargs.get("NUM_ENTRIES", 100))
+    
+    # Increased default to 500 to reduce total number of requests
+    num_entries = int(kwargs.get("NUM_ENTRIES", 500))
 
     logging.info(f"Starting sync for form: {form_id} into table: {target_table}")
 
@@ -37,15 +39,15 @@ def fetch_odk_submission_list(**kwargs):
                 if cursor_val:
                     params["cursor"] = cursor_val
                 
-                logging.info(f"Fetching page {page_count} (Cursor: {cursor_val[:20] if cursor_val else 'None'}...)")
+                logging.info(f"Fetching page {page_count} (Total IDs so far: {total_checked})")
 
                 try:
-                    # Added a 30-second timeout so the task doesn't hang if the server is slow
+                    # Increased timeout to 60s because large data queries take time
                     response = session.get(
                         url,
                         params=params,
                         headers={"Accept": "application/xml"},
-                        timeout=30 
+                        timeout=60 
                     )
                     response.raise_for_status()
                 except requests.exceptions.RequestException as e:
@@ -57,10 +59,10 @@ def fetch_odk_submission_list(**kwargs):
                 ids = [el.text for el in root.findall(".//odk:idList/odk:id", ns)]
 
                 if not ids:
-                    logging.info("No more IDs found in this response. Breaking loop.")
+                    logging.info("No more IDs found. Breaking loop.")
                     break
 
-                logging.info(f"Found {len(ids)} IDs on this page. Performing UPSERT.")
+                logging.info(f"Found {len(ids)} IDs. Performing UPSERT.")
 
                 upsert_sql = f"""
                     INSERT INTO {target_table} (id, status)
@@ -74,15 +76,18 @@ def fetch_odk_submission_list(**kwargs):
                 conn.commit()
                 total_checked += len(ids)
 
+                # --- THE "BREATHER" FOR TOMCAT ---
+                # This prevents the CPU from locking up on the server
+                time.sleep(1.5) 
+
                 cursor_el = root.find(".//odk:resumptionCursor", ns)
                 
-                # SAFETY CHECK: If cursor is missing or the same as before, stop to avoid infinite loop
-                if cursor_el is None or cursor_el.text is None:
-                    logging.info("No resumption cursor found. Finished all pages.")
+                if cursor_el is None or not cursor_el.text:
+                    logging.info("No resumption cursor found. Sync finished.")
                     break
                 
                 if cursor_el.text == cursor_val:
-                    logging.warning("Server returned the SAME cursor. Breaking to prevent infinite loop.")
+                    logging.warning("Server returned the SAME cursor. Breaking loop.")
                     break
 
                 cursor_val = cursor_el.text
